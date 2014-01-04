@@ -9,6 +9,7 @@ if (empty($_REQUEST['action'])) {
 <html>
     <head>
     <title>DownloadStation Decrypter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    	<link href="css/bootstrap.min.css" rel="stylesheet">
    	<link href="css/bootstrap-theme.min.css" rel="stylesheet">
     </head>
@@ -88,6 +89,7 @@ HTML;
 <html>
     <head>
     <title>DownloadStation Decrypter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/bootstrap-theme.min.css" rel="stylesheet">
     </head>
@@ -106,7 +108,7 @@ HTML;
 			<textarea class="form-control" wrap="auto" rows="30" name="links">$links</textarea></br>
             <input type="text" name="unpackPasswd" class="form-control" placeholder="Password to unrar/unzip (optional)"><br/>
             <input type="hidden" name="action" value="addLinks">
-            <br/><input type="submit" value="Add Links to DownloadStation" class="btn btn-success" >
+            <br/><input type="submit" value="ADD LINKS (FINISH)" class="btn btn-success" >
         </form> 
         <span class="btn btn-warning" onClick="history.go(0)">Start over (RESET)</span>
       </div>

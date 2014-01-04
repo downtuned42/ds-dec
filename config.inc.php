@@ -9,11 +9,11 @@ error_reporting(0);
 
 // endpoint of the diskstation web-api
 // if these scripts are hosted on the diskstation as well 'localhost' will do fine
-define('DS_API_ENDPOINT', 'https://localhost:5000/webapi');
+define('DS_API_ENDPOINT', 'http://localhost:5000/webapi');
 // Api user
 define('DS_API_USER', 'admin');
 // Api password
-define('DS_API_PASSWD', 'YOUR_PASSWORD_HERE');
+define('DS_API_PASSWD', 'ENTER_PASSWORD_HERE');
 
 set_exception_handler(function ($e) {
     if ($e instanceof FormErrorException) {
@@ -28,6 +28,7 @@ set_exception_handler(function ($e) {
 <html>
     <head>
     <title>DownloadStation Decrypter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/bootstrap-theme.min.css" rel="stylesheet">
     </head>
