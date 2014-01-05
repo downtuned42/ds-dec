@@ -1,6 +1,6 @@
 <?php
 
-class FormErrorException extends Exception {
+class ExpectedException extends Exception {
 }
 
 class DlcDecrypter {
@@ -93,15 +93,13 @@ class DlcDecrypter {
         $args = array('content' => $dlcContents);
         
         $res =  $this->post($url, $args, $headers);
-        
-        $res = json_decode($res);  
-        if (is_object($res) && isset($res->success) && is_array($res->success->links)) {
-            $links = $res->success->links;
+
+        $decRes = json_decode($res);
+        if (is_object($decRes) && isset($decRes->success) && is_array($decRes->success->links)) {
+            $links = $decRes->success->links;
         } else {
-            //****
-            $body = 'unknown error';
             throw new \RuntimeException(
-                'Failed parsing response: ' . var_export($body, true)
+                'Failed parsing response: ' . var_export($res, true)
             );
         }
 
@@ -151,8 +149,7 @@ class SynoWebApi
     private $endpoint;
     private $sid;
     private $serverProtocol;
-    private $debug = true;
-    
+
     public function __construct($endpoint)
     {
         $this->endpoint = $endpoint;
@@ -174,7 +171,7 @@ class SynoWebApi
         $res = json_decode($res);
         
         if (!isset($res->success) || !$res->success) {
-          throw new RuntimeException('failed issuing request. Response is ' . var_export($res, true));
+          throw new RuntimeException("Got error response from Syno-Api:\n" . var_export($res, true));
         }
         
         $this->sid = $res->data->sid;
@@ -199,7 +196,7 @@ class SynoWebApi
         $res = json_decode($res);
         
         if (!isset($res->success) || !$res->success) {
-          throw new RuntimeException('failed issuing request. Response is ' . var_export($res, true));
+          throw new RuntimeException("Got error response from Syno-Api:\n" . var_export($res, true));
         }
         return $res;
     }
@@ -228,12 +225,6 @@ class SynoWebApi
 
         $context_options['http']['header'] = implode("\r\n", $headers);
 
-        if ($this->debug) {
-            echo "REQUEST:\n";
-            echo $url . "\n";
-            echo print_r($headers, true);
-        }
-
         if ($this->serverProtocol === 'https') {
             $context_options['ssl'] = array(
                 'verify_peer' => false,
@@ -245,11 +236,51 @@ class SynoWebApi
         $http_response_header = null;
         $response = file_get_contents($url, null, $context);
         if ($response === false) {
-            throw new \RuntimeException(
-                'Failed issuing request, response headers: ' . var_export($http_response_header, true)
-            );
+            $msg = "Failed issuing request:\n" . "REQUEST:\n" . $url . "\n" . print_r($headers, true)
+                . "\nRESPONSE:\n" . var_export($http_response_header, true);
+            throw new \RuntimeException($msg);
         }
         
         return $response;
+    }
+}
+
+/**
+ * (P)oor(M)ans(T)emplate(E)ngine
+ */
+class Pmte {
+    
+    private $templateFile;
+    private $subst;
+    
+    public function __construct($templateFile) {
+        $this->templateFile = $templateFile;
+    }
+    
+    public function render(array $subst=array()) {
+        $this->subst = $subst;
+        $content = '';
+        
+        if (!file_exists($this->templateFile) || !is_readable($this->templateFile)) {
+            throw new \RuntimeException("Template File [$this->templateFile] does not exist or is not readable!");
+        }
+        
+        try {
+            ob_start();
+            include $this->templateFile;
+            $content = ob_get_clean();
+        } catch (\Exception $ex) {
+            ob_end_clean();
+            throw $ex;
+        }
+        return $content;
+    }
+    
+    public function __get($name) {
+        if (isset($this->subst[$name])) {
+            return $this->subst[$name];
+        } else {
+            return null;
+        }
     }
 }
