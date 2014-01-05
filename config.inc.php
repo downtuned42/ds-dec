@@ -22,6 +22,12 @@ set_exception_handler(function ($e) {
 
     // mask password
     $msg = str_ireplace(DS_API_PASSWD, 'XXXXXX', $msg);
+    // mhh, this is not reliable. Arguments in traces get truncated after 15 characters e.g.:
+    // #0 /volume1/web/cadd/index.php(47): SynoWebApi->login('admin', 'ENTER_PASSWORD_...')
+    // do some hacking to mask longer passwords as well :-/
+    if (strlen(DS_API_PASSWD) > 15) {
+        $msg = str_ireplace(substr(DS_API_PASSWD, 0, 15) . '...', 'XXXXXX', $msg);
+    }
 
     $tpl = new Pmte('error.phtml');
     echo $tpl->render(array('msg' => $msg));
