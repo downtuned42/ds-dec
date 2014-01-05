@@ -7,7 +7,7 @@ ini_set('display_errors', 1);
 
 //****
 //comment this out to disable debug (NOTICE) messages
-//error_reporting(0);
+//ini_set('display_errors', 0);
 
 // endpoint of the diskstation web-api
 // if these scripts are hosted on the diskstation as well 'localhost' will do fine
