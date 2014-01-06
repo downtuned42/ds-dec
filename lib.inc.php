@@ -3,6 +3,20 @@
 class ExpectedException extends Exception {
 }
 
+set_exception_handler(function ($e) {
+    /* @var Exception $e */
+    if ($e instanceof ExpectedException) {
+        $msg = $e->getMessage();
+    } else {
+        $msg = "AN UNEXPECTED EXCEPTION OCCURRED:\n\n" . $e->getMessage() . "\n\n" . $e->getTraceAsString();
+    }
+    // mask password
+    $msg = StringUtil::maskPassword(DS_API_PASSWD, 'XXXXXX', $msg);
+
+    $tpl = new Pmte('error.phtml');
+    echo $tpl->render(array('msg' => $msg));
+});
+
 class DlcDecrypter {
     const TYPE_LINKDECRYPTER = 1;
     const TYPE_DCRYPTIT = 2;
@@ -149,6 +163,7 @@ class SynoWebApi
     private $endpoint;
     private $sid;
     private $serverProtocol;
+    public $lastRequestInfo;
 
     public function __construct($endpoint)
     {
@@ -171,9 +186,12 @@ class SynoWebApi
         $res = json_decode($res);
         
         if (!isset($res->success) || !$res->success) {
-          throw new RuntimeException("Got error response from Syno-Api:\n" . var_export($res, true));
+            throw new RuntimeException(
+                "Got error response from Syno-Api:\n"
+                . "REQUEST-INFO:\n" . print_r($this->lastRequestInfo, true)
+            );
         }
-        
+
         $this->sid = $res->data->sid;
         
         return $res;
@@ -196,7 +214,10 @@ class SynoWebApi
         $res = json_decode($res);
         
         if (!isset($res->success) || !$res->success) {
-          throw new RuntimeException("Got error response from Syno-Api:\n" . var_export($res, true));
+          throw new RuntimeException(
+              "Got error response from Syno-Api:\n"
+              . "REQUEST-INFO:\n" . print_r($this->lastRequestInfo, true)
+          );
         }
         return $res;
     }
@@ -235,10 +256,20 @@ class SynoWebApi
         
         $http_response_header = null;
         $response = file_get_contents($url, null, $context);
+
+        $reqInfo = new stdClass;
+        $reqInfo->url = $url;
+        $reqInfo->query = $query;
+        $reqInfo->requestHeader = $headers;
+        $reqInfo->response = $response;
+        $reqInfo->responseHeader = $http_response_header;
+        $this->lastRequestInfo = $reqInfo;
+
         if ($response === false) {
-            $msg = "Failed issuing request:\n" . "REQUEST:\n" . $url . "\n" . print_r($headers, true)
-                . "\nRESPONSE:\n" . var_export($http_response_header, true);
-            throw new \RuntimeException($msg);
+            throw new \RuntimeException(
+                "Failed issuing request:\n"
+                . "REQUEST-INFO:\n" . print_r($this->lastRequestInfo, true)
+            );
         }
         
         return $response;
@@ -282,5 +313,18 @@ class Pmte {
         } else {
             return null;
         }
+    }
+}
+
+class StringUtil {
+    public static function maskPassword($search, $replace, $subject) {
+        $subject = str_ireplace($search, $replace, $subject);
+        // mhh, this is not reliable. Arguments in traces get truncated after 15 characters e.g.:
+        // #0 /volume1/web/cadd/index.php(47): SynoWebApi->login('admin', 'ENTER_PASSWORD_...')
+        // do some hacking to mask longer passwords as well :-/
+        if (strlen($search) > 15) {
+            $subject = str_ireplace(substr($search, 0, 15) . '...', $replace, $subject);
+        }
+        return $subject;
     }
 }

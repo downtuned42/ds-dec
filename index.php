@@ -44,11 +44,17 @@ if (empty($_REQUEST['action'])) {
 
     $api = new SynoWebApi(DS_API_ENDPOINT);
 
-    $api->login(DS_API_USER, DS_API_PASSWD);
+    $res = $api->login(DS_API_USER, DS_API_PASSWD);
     $msg = "SYNO.API.Auth::login: SUCCESS";
+    if (DEBUG) {
+        $msg .= "\nREQUEST-INFO:\n" . print_r($api->lastRequestInfo, true);
+    }
 
     $api->addLinks($linkList, $unpackPasswd);
     $msg .= "\n" . "SYNO.DownloadStation.Task::create: SUCCESS";
+    if (DEBUG) {
+        $msg .= "\nREQUEST-INFO:\n" . print_r($api->lastRequestInfo, true);
+    }
 
     $msg .= "\n\n" . "Links successfully added to DownloadStation!";
 
