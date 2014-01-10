@@ -17,12 +17,15 @@
 
         <div class="jumbotron">
             <h2>You may edit the links prior submitting them to Download Station:</h2>
+            <input type="hidden" name="action" value="addLinks">
             <textarea class="form-control" wrap="auto" rows="30" name="links"><?php echo $this->links?></textarea></br>
             <input type="text" name="unpackPasswd" class="form-control" placeholder="Password to unrar/unzip (optional)"><br/>
-            <input type="hidden" name="action" value="addLinks">
+            <input type="password" class="form-control" id="passwd" name="passwd" placeholder="Password for Web-API-Login if not set in config (optional)">
             <br/><input type="submit" value="ADD LINKS (FINISH)" class="btn btn-success" >
+            <span class="btn btn-warning" onClick="history.go(0)">Start over (RESET)</span>
+
+        </div>
     </form>
-    <span class="btn btn-warning" onClick="history.go(0)">Start over (RESET)</span>
 </div>
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.js"></script>

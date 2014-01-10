@@ -3,20 +3,6 @@
 class ExpectedException extends Exception {
 }
 
-set_exception_handler(function ($e) {
-    /* @var Exception $e */
-    if ($e instanceof ExpectedException) {
-        $msg = $e->getMessage();
-    } else {
-        $msg = "AN UNEXPECTED EXCEPTION OCCURRED:\n\n" . $e->getMessage() . "\n\n" . $e->getTraceAsString();
-    }
-    // mask password
-    $msg = StringUtil::maskPassword(DS_API_PASSWD, 'XXXXXX', $msg);
-
-    $tpl = new Pmte('error.phtml');
-    echo $tpl->render(array('msg' => $msg));
-});
-
 class DlcDecrypter {
     const TYPE_LINKDECRYPTER = 1;
     const TYPE_DCRYPTIT = 2;
@@ -316,15 +302,27 @@ class Pmte {
     }
 }
 
-class StringUtil {
-    public static function maskPassword($search, $replace, $subject) {
-        $subject = str_ireplace($search, $replace, $subject);
+class StringMasker {
+
+    private $subjectToMask;
+    private $mask;
+
+    public function __construct($subjectToMask, $mask='XXXXXX') {
+        $this->subjectToMask = $subjectToMask;
+        $this->mask = $mask;
+    }
+    public function mask($subject) {
+        $subject = str_ireplace($this->subjectToMask, $this->mask, $subject);
         // mhh, this is not reliable. Arguments in traces get truncated after 15 characters e.g.:
         // #0 /volume1/web/cadd/index.php(47): SynoWebApi->login('admin', 'ENTER_PASSWORD_...')
-        // do some hacking to mask longer passwords as well :-/
-        if (strlen($search) > 15) {
-            $subject = str_ireplace(substr($search, 0, 15) . '...', $replace, $subject);
+        // do some hacking to mask longer strings as well :-/
+        if (strlen($this->subjectToMask) > 15) {
+            $subject = str_ireplace(substr($this->subjectToMask, 0, 15) . '...', $this->mask, $subject);
         }
         return $subject;
+    }
+
+    public function setSubjectToMask($subjectToMask) {
+        $this->subjectToMask = $subjectToMask;
     }
 }
