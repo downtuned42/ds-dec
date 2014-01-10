@@ -13,6 +13,7 @@ set_exception_handler(function ($e) use ($passwdMasker) {
     }
     // mask password
     $msg = $passwdMasker->mask($msg);
+    $msg = strip_tags($msg);
 
     $tpl = new Pmte('error.phtml');
     echo $tpl->render(array('msg' => $msg));
@@ -54,6 +55,11 @@ if (empty($_REQUEST['action'])) {
 } else if ($_REQUEST['action'] == 'addLinks') {
 
     $links = trim($_REQUEST['links']);
+
+    if (empty($links)) {
+        throw new ExpectedException('No links to add!');
+    }
+
     $unpackPasswd = trim($_REQUEST['unpackPasswd']);
     $linkList = str_replace("\r\n", ',', $links);
 

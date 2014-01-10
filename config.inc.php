@@ -11,5 +11,5 @@ define('DEBUG', false);
 define('DS_API_ENDPOINT', 'http://localhost:5000/webapi');
 // Api user
 define('DS_API_USER', 'admin');
-// Api password - leave emty and provide it via web-gui when adding links to downloadstation - ENTER_PASSWORD_HERE
-define('DS_API_PASSWD', 'ENTER_PASSWORD_HERE');
+// Api password - leave empty and provide it via web-gui when adding links to downloadstation
+define('DS_API_PASSWD', '');
