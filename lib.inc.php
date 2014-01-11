@@ -1,5 +1,7 @@
 <?php
 
+require_once 'RollingCurl.php';
+
 class ExpectedException extends Exception {
 }
 
@@ -274,6 +276,59 @@ class Pmte {
         } else {
             return null;
         }
+    }
+}
+
+class Scraper
+{
+    private $result = array();
+    private $pattern;
+    private $rc;
+
+    public function __construct($pattern, array $urls) {
+        $this->pattern = $pattern;
+
+        $rc = new RollingCurl();
+        foreach ($urls as $key => $url) {
+            $url = trim($url);
+            $request = new RollingCurlRequest($url);
+            $callback = $this->getWriteFunction($key, $url);
+            $request->options = array(CURLOPT_WRITEFUNCTION => $callback);
+            $rc->add($request);
+        }
+        $this->rc = $rc;
+    }
+
+    function scrape($window=5)
+    {
+        $this->rc->execute($window);
+        return $this->result;
+    }
+
+    function getWriteFunction($key, $url)
+    {
+        $this->result[$key] = new stdClass;
+        $this->result[$key]->charsRead = 0;
+        $this->result[$key]->content = '';
+        $this->result[$key]->url = $url;
+        $this->result[$key]->match = '';
+
+        $res = $this->result[$key];
+        $pattern = $this->pattern;
+
+        $funky = function ($ch, $str) use ($res, $pattern) {
+            $res->content .= $str;
+            $length = strlen($str);
+            $res->charsRead += $length;
+            $found = preg_match_all($pattern, $res->content, $matches);
+            if ($found) {
+                $res->match = $matches[1][0];
+                //$res->content = null;
+                return -1;
+            }
+            return $length;
+        };
+        return $funky;
     }
 }
 

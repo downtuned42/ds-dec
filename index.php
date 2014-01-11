@@ -52,6 +52,23 @@ if (empty($_REQUEST['action'])) {
         'links' => $links
     );
     echo $tpl->render($subst);
+
+} else if (isset($_REQUEST['filenameLookup'])) { // linkform has been submitted to lookup filenames per link
+
+    $links = trim($_REQUEST['links']);
+
+    $scr = new Scraper("|<a .*id=\"filename\".*>(.*)</a>|", explode("\n", $links));
+    $res = $scr->scrape(10);
+    $linkList = array();
+    foreach ($res as $linkRes) {
+        $linkList[] = $linkRes->match . "\t\t" . '[' . $linkRes->url .']';
+    }
+
+    $tpl = new Pmte('links.phtml');
+    $subst = array(
+        'links' => implode("\n", $linkList)
+    );
+    echo $tpl->render($subst);
 } else if ($_REQUEST['action'] == 'addLinks') {
 
     $links = trim($_REQUEST['links']);

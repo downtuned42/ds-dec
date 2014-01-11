@@ -5,7 +5,7 @@
 
 echo "<pre>";
 
-$fp = fopen("http://uploaded.net/file/0wjxfbm3", 'r');
+$fp = fopen("http://ul.to/erzfkz3m", 'r');
 while(!feof($fp)) {
     $data .= fread($fp, 8192);
     $found = preg_match_all("|<a .*id=\"filename\".*>(.*)</a>|", $data, $matches);

@@ -20,11 +20,15 @@
                 <div class="form-group" style="margin-top:15px;">
                     <label for="links">You may edit the links prior submitting them to Download Station:</label>
                     <textarea class="form-control" wrap="auto" rows="30" id="links" name="links"><?php echo $this->links?></textarea>
+                    <br/>
+                    <div class="text-right">
+                        <input type="submit" name="filenameLookup" value="Lookup filenames" class="btn btn-success" >
+                    </div>
                 </div>
                 <input type="text" name="unpackPasswd" class="form-control" placeholder="Password to unrar/unzip (optional)"><br/>
                 <input type="password" class="form-control" id="passwd" name="passwd" placeholder="Password for Web-API-Login if not set in config (optional)"><br/><br/>
                 <div class="text-center">
-                    <input type="submit" value="ADD LINKS (FINISH)" class="btn btn-success" >
+                    <input type="submit" value="Add links (finish)" class="btn btn-success" >
                     <span class="btn btn-warning" onClick="history.go(0)">Start over (RESET)</span>
                 </div>
             </div>
