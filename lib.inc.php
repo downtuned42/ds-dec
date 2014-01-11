@@ -3,21 +3,72 @@
 class ExpectedException extends Exception {
 }
 
-set_exception_handler(function ($e) {
-    /* @var Exception $e */
-    if ($e instanceof ExpectedException) {
-        $msg = $e->getMessage();
-    } else {
-        $msg = "AN UNEXPECTED EXCEPTION OCCURRED:\n\n" . $e->getMessage() . "\n\n" . $e->getTraceAsString();
+/**
+ * Simple cURL based Http-Client
+ */
+class HttpClient
+{
+
+    public $lastRequestInfo;
+
+    public function post($url, array $args=array(), $headers=array())
+    {
+        $query = '';
+        if (is_array($args) && count($args)) {
+            $query = http_build_query($args);
+        }
+
+        $curlOpt = array(
+            CURLOPT_URL => $url,
+            CURLOPT_POST =>  1,
+            CURLOPT_POSTFIELDS => $query,
+            CURLOPT_HEADER =>  1, // returns header AND response-body as one string
+            CURLOPT_RETURNTRANSFER => true
+        );
+        if (is_array($headers) && count($headers)) {
+            $curlOpt[CURLOPT_HTTPHEADER] = $headers;
+        }
+        if ((stripos($url, 'https') === 0) ? true : false) {
+            $curlOpt[CURLOPT_SSL_VERIFYPEER] = false;
+        }
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $curlOpt);
+
+        $response = curl_exec($ch);
+
+        // split header and response-body
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $header = substr($response, 0, $headerSize);
+        $body = substr($response, $headerSize);
+
+        // get http-status of response
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $reqInfo = new stdClass;
+        $reqInfo->url = $url;
+        $reqInfo->query = $query;
+        $reqInfo->requestHeader = $headers;
+        $reqInfo->response = $body;
+        $reqInfo->responseHeader = $header;
+        $this->lastRequestInfo = $reqInfo;
+
+        // Check if any error occurred
+        if (curl_errno($ch) || $status != 200) {
+            curl_close($ch);
+            throw new \RuntimeException(
+                "Failed issuing request:\n"
+                . "REQUEST-INFO:\n" . print_r($this->lastRequestInfo, true)
+            );
+        }
+
+        curl_close($ch);
+
+        return $body;
     }
-    // mask password
-    $msg = StringUtil::maskPassword(DS_API_PASSWD, 'XXXXXX', $msg);
+}
 
-    $tpl = new Pmte('error.phtml');
-    echo $tpl->render(array('msg' => $msg));
-});
-
-class DlcDecrypter {
+class DlcDecrypter extends HttpClient {
     const TYPE_LINKDECRYPTER = 1;
     const TYPE_DCRYPTIT = 2;
     
@@ -119,58 +170,18 @@ class DlcDecrypter {
 
         return implode("\n", $links);
     }    
-    
-    private function post($url, array $args=array(), $headers=array())
-    {
-        $query = '';
-        if (is_array($args) && count($args)) {
-            $query = http_build_query($args);
-        }
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
-        curl_setopt($ch, CURLOPT_HEADER, 1); // returns header AND response-body as one string
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
-        if (is_array($headers) && count($headers)) {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        }
-
-        $response = curl_exec($ch);
-        
-        // split header and response-body
-        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $header = substr($response, 0, $headerSize);
-        $body = substr($response, $headerSize);        
-        
-        // get http-status of response
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);        
-        
-        if ($status != 200) {
-            throw new \RuntimeException(
-                'Failed issuing request, response headers: ' . var_export($header, true)
-            );
-        }
-        
-        return $body;
-    }    
 }
 
-class SynoWebApi
+class SynoWebApi extends HttpClient
 {
     private $endpoint;
     private $sid;
-    private $serverProtocol;
-    public $lastRequestInfo;
 
     public function __construct($endpoint)
     {
         $this->endpoint = $endpoint;
-        $this->serverProtocol = 'http';
     }
-    
+
     public function login($user, $passwd)
     {
         $args = array(
@@ -182,9 +193,11 @@ class SynoWebApi
             'account' => $user,
             'passwd' => $passwd
         );
-        $res = $this->request('auth.cgi', 'GET', $args);
+
+        $url = $this->endpoint . '/auth.cgi';
+        $res = $this->post($url, $args);
         $res = json_decode($res);
-        
+
         if (!isset($res->success) || !$res->success) {
             throw new RuntimeException(
                 "Got error response from Syno-Api:\n"
@@ -193,10 +206,10 @@ class SynoWebApi
         }
 
         $this->sid = $res->data->sid;
-        
+
         return $res;
     }
-    
+
     public function addLinks($linkList, $unpackPasswd='')
     {
         $args = array(
@@ -209,70 +222,18 @@ class SynoWebApi
         if ($unpackPasswd) {
             $args['unzip_password'] = $unpackPasswd;
         }
-        
-        $res = $this->request('DownloadStation/task.cgi', 'POST', $args);
+
+        $url = $this->endpoint . '/' . 'DownloadStation/task.cgi';
+        $res = $this->post($url, $args);
         $res = json_decode($res);
-        
+
         if (!isset($res->success) || !$res->success) {
-          throw new RuntimeException(
-              "Got error response from Syno-Api:\n"
-              . "REQUEST-INFO:\n" . print_r($this->lastRequestInfo, true)
-          );
-        }
-        return $res;
-    }
-    public function request($uri, $httpMethod, $args, $headers=array())
-    {
-        $query = '';
-        if (is_array($args) && count($args)) {
-            $query = http_build_query($args);
-        }
-
-        $context_options = array (
-            'http' => array (
-                'method' => $httpMethod,
-                'protocol_version' => '1.1'
-            )
-        );
-        
-        $url = $this->endpoint . '/' . $uri;
-        if ($httpMethod == 'GET' && $query) {
-            $url.= '?' . trim($query);
-        } else if($httpMethod == 'POST') {
-            $context_options['http']['content'] = trim($query);
-            $headers[] = 'Content-Length: ' . strlen($query);
-            $headers[] = 'Content-Type: application/x-www-form-urlencoded';
-        }
-
-        $context_options['http']['header'] = implode("\r\n", $headers);
-
-        if ($this->serverProtocol === 'https') {
-            $context_options['ssl'] = array(
-                'verify_peer' => false,
-                'allow_self_signed' => true
-            );
-        }
-        $context = stream_context_create($context_options);
-        
-        $http_response_header = null;
-        $response = file_get_contents($url, null, $context);
-
-        $reqInfo = new stdClass;
-        $reqInfo->url = $url;
-        $reqInfo->query = $query;
-        $reqInfo->requestHeader = $headers;
-        $reqInfo->response = $response;
-        $reqInfo->responseHeader = $http_response_header;
-        $this->lastRequestInfo = $reqInfo;
-
-        if ($response === false) {
-            throw new \RuntimeException(
-                "Failed issuing request:\n"
+            throw new RuntimeException(
+                "Got error response from Syno-Api:\n"
                 . "REQUEST-INFO:\n" . print_r($this->lastRequestInfo, true)
             );
         }
-        
-        return $response;
+        return $res;
     }
 }
 
@@ -316,15 +277,27 @@ class Pmte {
     }
 }
 
-class StringUtil {
-    public static function maskPassword($search, $replace, $subject) {
-        $subject = str_ireplace($search, $replace, $subject);
+class StringMasker {
+
+    private $subjectToMask;
+    private $mask;
+
+    public function __construct($subjectToMask, $mask='XXXXXX') {
+        $this->subjectToMask = $subjectToMask;
+        $this->mask = $mask;
+    }
+    public function mask($subject) {
+        $subject = str_ireplace($this->subjectToMask, $this->mask, $subject);
         // mhh, this is not reliable. Arguments in traces get truncated after 15 characters e.g.:
         // #0 /volume1/web/cadd/index.php(47): SynoWebApi->login('admin', 'ENTER_PASSWORD_...')
-        // do some hacking to mask longer passwords as well :-/
-        if (strlen($search) > 15) {
-            $subject = str_ireplace(substr($search, 0, 15) . '...', $replace, $subject);
+        // do some hacking to mask longer strings as well :-/
+        if (strlen($this->subjectToMask) > 15) {
+            $subject = str_ireplace(substr($this->subjectToMask, 0, 15) . '...', $this->mask, $subject);
         }
         return $subject;
+    }
+
+    public function setSubjectToMask($subjectToMask) {
+        $this->subjectToMask = $subjectToMask;
     }
 }

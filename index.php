@@ -3,6 +3,22 @@
 require_once 'config.inc.php';
 require_once 'lib.inc.php';
 
+$passwdMasker = new StringMasker(DS_API_PASSWD);
+set_exception_handler(function ($e) use ($passwdMasker) {
+    /* @var Exception $e */
+    if ($e instanceof ExpectedException) {
+        $msg = $e->getMessage();
+    } else {
+        $msg = "AN UNEXPECTED EXCEPTION OCCURRED:\n\n" . $e->getMessage() . "\n\n" . $e->getTraceAsString();
+    }
+    // mask password
+    $msg = $passwdMasker->mask($msg);
+    $msg = strip_tags($msg);
+
+    $tpl = new Pmte('error.phtml');
+    echo $tpl->render(array('msg' => $msg));
+});
+
 if (empty($_REQUEST['action'])) {
 
     $tpl = new Pmte('index.phtml');
@@ -39,12 +55,25 @@ if (empty($_REQUEST['action'])) {
 } else if ($_REQUEST['action'] == 'addLinks') {
 
     $links = trim($_REQUEST['links']);
+
+    if (empty($links)) {
+        throw new ExpectedException('No links to add!');
+    }
+
     $unpackPasswd = trim($_REQUEST['unpackPasswd']);
     $linkList = str_replace("\r\n", ',', $links);
 
     $api = new SynoWebApi(DS_API_ENDPOINT);
 
-    $res = $api->login(DS_API_USER, DS_API_PASSWD);
+    $passwd = trim($_REQUEST['passwd']);
+    if (!$passwd) {
+        $passwd = DS_API_PASSWD;
+    } else {
+        // if password was provided via form, update the masker so it may mask the passwd in case of an error
+        $passwdMasker->setSubjectToMask($passwd);
+    }
+
+    $res = $api->login(DS_API_USER, $passwd);
     $msg = "SYNO.API.Auth::login: SUCCESS";
     if (DEBUG) {
         $msg .= "\nREQUEST-INFO:\n" . print_r($api->lastRequestInfo, true);
@@ -60,7 +89,7 @@ if (empty($_REQUEST['action'])) {
 
     $tpl = new Pmte('result.phtml');
     $subst = array(
-        'msg' => $msg
+        'msg' => $passwdMasker->mask($msg)
     );
     echo $tpl->render($subst);
 }
