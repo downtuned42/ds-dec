@@ -63,11 +63,13 @@ if (empty($_REQUEST['action'])) {
     $filenameArr = array();
     LinkParser::parseLinkStr($links, $linkArr, $filenameArr);
 
-    $scr = new Scraper($pattern, $linkArr);
-    $res = $scr->scrape(10);
     $linkList = array();
-    foreach ($res as $linkRes) {
-        $linkList[] =  $linkRes->url . ((!empty($linkRes->match)) ? "\t" . '[' . $linkRes->match  .']' : '');
+    if (is_array($linkArr) && count($linkArr) > 0) {
+        $scr = new Scraper($pattern, $linkArr);
+        $res = $scr->scrape(10);
+        foreach ($res as $linkRes) {
+            $linkList[] =  $linkRes->url . ((!empty($linkRes->match)) ? "\t" . '[' . $linkRes->match  .']' : '');
+        }
     }
 
     $tpl = new Pmte('links.phtml');
