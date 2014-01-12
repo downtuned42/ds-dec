@@ -19,9 +19,15 @@
             <div class="col-lg-12">
                 <div class="form-group" style="margin-top:15px;">
                     <label for="links">You may edit the links prior submitting them to Download Station:</label>
-                    <textarea class="form-control" wrap="auto" rows="30" id="links" name="links"><?php echo $this->links?></textarea>
+                    <textarea class="form-control" wrap="auto" rows="30" id="links" name="links" style="font-family: Menlo,Monaco,Consolas,Courier New,monospace;"><?php echo $this->links?></textarea>
                     <br/>
+                    <div class="form-group" style="margin-top:15px;">
                     <div class="text-right">
+                        <select id="hoster" name="hoster" class="form-control">
+                            <?php foreach ($this->hosterList as $hosterId => $info): ?>
+                                <option value="<?php echo $hosterId?>"><?php echo $info[0]?></option>
+                            <?php endforeach; ?>
+                        </select>
                         <input type="submit" name="filenameLookup" value="Lookup filenames" class="btn btn-success" >
                     </div>
                 </div>

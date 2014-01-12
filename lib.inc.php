@@ -293,7 +293,7 @@ class Scraper
             $url = trim($url);
             $request = new RollingCurlRequest($url);
             $callback = $this->getWriteFunction($key, $url);
-            $request->options = array(CURLOPT_WRITEFUNCTION => $callback);
+            $request->options = array(CURLOPT_WRITEFUNCTION => $callback, CURLOPT_FOLLOWLOCATION => true);
             $rc->add($request);
         }
         $this->rc = $rc;
@@ -331,6 +331,31 @@ class Scraper
         return $funky;
     }
 }
+
+class LinkParser
+{
+    public static function parseLinkStr($linkStr, array &$linkArr, array &$filenameArr) {
+        $linkStr = explode("\n", $linkStr);
+        foreach ($linkStr as $link) {
+            $link = trim($link);
+            // try to find "URL [FILENAME]"
+            $found = preg_match("|(http:\/\/.*).*\[(.*)\]|", $link, $matches);
+            if (!$found) {
+                // if not found try to find "URL"
+                $found = preg_match("|(http:\/\/.*)|", $link, $matches);
+            }
+            if ($found) {
+                if (count($matches) == 2) {  // only links e.g.: http://foo.to/sg11ds5
+                    $linkArr[] = trim($matches[1]);
+                } else if (count($matches) == 3) { // links and filenames e.g.: http://foo.to/sg11ds5 [my-archive-01.rar]
+                    $linkArr[] = trim($matches[1]);
+                    $filenameArr[] = trim($matches[2]);
+                }
+            }
+        }
+    }
+}
+
 
 class StringMasker {
 
