@@ -1,5 +1,7 @@
 <?php
 
+require_once 'RollingCurl.php';
+
 class ExpectedException extends Exception {
 }
 
@@ -276,6 +278,86 @@ class Pmte {
         }
     }
 }
+
+/**
+ * Scrapes strings out of web-pages. Done efficiently via cURL-multi.
+ */
+class Scraper
+{
+    private $result = array();
+    private $pattern;
+    private $rc;
+
+    public function __construct($pattern, array $urls) {
+        $this->pattern = $pattern;
+        $rc = new RollingCurl();
+        foreach ($urls as $key => $url) {
+            $url = trim($url);
+            $request = new RollingCurlRequest($url);
+            $callback = $this->getWriteFunction($key, $url);
+            $request->options = array(CURLOPT_WRITEFUNCTION => $callback, CURLOPT_FOLLOWLOCATION => true);
+            $rc->add($request);
+        }
+        $this->rc = $rc;
+    }
+
+    public function scrape($window=5)
+    {
+        $this->rc->execute($window);
+        return $this->result;
+    }
+
+    private function getWriteFunction($key, $url)
+    {
+        $this->result[$key] = new stdClass;
+        $this->result[$key]->charsRead = 0;
+        $this->result[$key]->content = '';
+        $this->result[$key]->url = $url;
+        $this->result[$key]->match = '';
+
+        $res = $this->result[$key];
+        $pattern = $this->pattern;
+
+        $funky = function ($ch, $str) use ($res, $pattern) {
+            $res->content .= $str;
+            $length = strlen($str);
+            $res->charsRead += $length;
+            $found = preg_match_all($pattern, $res->content, $matches);
+            if ($found) {
+                $res->match = $matches[1][0];
+                unset($res->content); // unset to save memory, content not needed anyway for now
+                return -1;
+            }
+            return $length;
+        };
+        return $funky;
+    }
+}
+
+class LinkParser
+{
+    public static function parseLinkStr($linkStr, array &$linkArr, array &$filenameArr) {
+        $linkStr = explode("\n", $linkStr);
+        foreach ($linkStr as $link) {
+            $link = trim($link);
+            // try to find "URL [FILENAME]"
+            $found = preg_match("|(http:\/\/.*).*\[(.*)\]|", $link, $matches);
+            if (!$found) {
+                // if not found try to find "URL"
+                $found = preg_match("|(http:\/\/.*)|", $link, $matches);
+            }
+            if ($found) {
+                if (count($matches) == 2) {  // only links e.g.: http://foo.to/sg11ds5
+                    $linkArr[] = trim($matches[1]);
+                } else if (count($matches) == 3) { // links and filenames e.g.: http://foo.to/sg11ds5 [my-archive-01.rar]
+                    $linkArr[] = trim($matches[1]);
+                    $filenameArr[] = trim($matches[2]);
+                }
+            }
+        }
+    }
+}
+
 
 class StringMasker {
 

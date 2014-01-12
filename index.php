@@ -49,19 +49,45 @@ if (empty($_REQUEST['action'])) {
 
     $tpl = new Pmte('links.phtml');
     $subst = array(
+        'hosterList' => $GLOBALS['filenameScraper'],
         'links' => $links
+    );
+    echo $tpl->render($subst);
+
+} else if (isset($_REQUEST['filenameLookup'])) { // linkform has been submitted to lookup filenames for links
+
+    $links = trim($_REQUEST['links']);
+    $pattern = $GLOBALS['filenameScraper'][$_REQUEST['hoster']][1];
+
+    $linkArr = array();
+    $filenameArr = array();
+    LinkParser::parseLinkStr($links, $linkArr, $filenameArr);
+
+    $scr = new Scraper($pattern, $linkArr);
+    $res = $scr->scrape(10);
+    $linkList = array();
+    foreach ($res as $linkRes) {
+        $linkList[] =  $linkRes->url . ((!empty($linkRes->match)) ? "\t" . '[' . $linkRes->match  .']' : '');
+    }
+
+    $tpl = new Pmte('links.phtml');
+    $subst = array(
+        'hosterList' => $GLOBALS['filenameScraper'],
+        'links' => implode("\n", $linkList)
     );
     echo $tpl->render($subst);
 } else if ($_REQUEST['action'] == 'addLinks') {
 
     $links = trim($_REQUEST['links']);
+    $linkArr = array();
+    $filenameArr = array();
+    LinkParser::parseLinkStr($links, $linkArr, $filenameArr);
 
-    if (empty($links)) {
+    if (empty($linkArr)) {
         throw new ExpectedException('No links to add!');
     }
 
     $unpackPasswd = trim($_REQUEST['unpackPasswd']);
-    $linkList = str_replace("\r\n", ',', $links);
 
     $api = new SynoWebApi(DS_API_ENDPOINT);
 
@@ -79,7 +105,7 @@ if (empty($_REQUEST['action'])) {
         $msg .= "\nREQUEST-INFO:\n" . print_r($api->lastRequestInfo, true);
     }
 
-    $api->addLinks($linkList, $unpackPasswd);
+    $api->addLinks(implode(',', $linkArr), $unpackPasswd);
     $msg .= "\n" . "SYNO.DownloadStation.Task::create: SUCCESS";
     if (DEBUG) {
         $msg .= "\nREQUEST-INFO:\n" . print_r($api->lastRequestInfo, true);
