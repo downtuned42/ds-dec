@@ -13,7 +13,8 @@ define('DS_API_ENDPOINT', 'http://localhost:5000/webapi');
 define('DS_API_USER', 'admin');
 // Api password - leave empty and provide it via web-gui when adding links to downloadstation
 define('DS_API_PASSWD', '');
-
+// add regex-patterns to scrape the filename of an download link out of the web-page's content
+// [<hosterId> => [<hosterDisplayName>, <regExPattern>]]
 $filenameScraper = array(
     'uploaded' => array('uploaded.to', "|<a .*id=\"filename\".*>(.*)</a>|")
 );

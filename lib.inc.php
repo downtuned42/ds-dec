@@ -279,6 +279,9 @@ class Pmte {
     }
 }
 
+/**
+ * Scrapes strings out of web-pages. Done efficiently via cURL-multi.
+ */
 class Scraper
 {
     private $result = array();
@@ -287,7 +290,6 @@ class Scraper
 
     public function __construct($pattern, array $urls) {
         $this->pattern = $pattern;
-
         $rc = new RollingCurl();
         foreach ($urls as $key => $url) {
             $url = trim($url);
@@ -299,13 +301,13 @@ class Scraper
         $this->rc = $rc;
     }
 
-    function scrape($window=5)
+    public function scrape($window=5)
     {
         $this->rc->execute($window);
         return $this->result;
     }
 
-    function getWriteFunction($key, $url)
+    private function getWriteFunction($key, $url)
     {
         $this->result[$key] = new stdClass;
         $this->result[$key]->charsRead = 0;
@@ -323,7 +325,7 @@ class Scraper
             $found = preg_match_all($pattern, $res->content, $matches);
             if ($found) {
                 $res->match = $matches[1][0];
-                //$res->content = null;
+                unset($res->content); // unset to save memory, content not needed anyway for now
                 return -1;
             }
             return $length;
