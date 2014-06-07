@@ -32,6 +32,9 @@ class HttpClient
         }
         if ((stripos($url, 'https') === 0) ? true : false) {
             $curlOpt[CURLOPT_SSL_VERIFYPEER] = false;
+            // prevents 'curl SSL: certificate subject name 'my-hostname-from-certificate'
+            // does not match target host name 'my-hostname-from-config.inc.php' errors
+            $curlOpt[CURLOPT_SSL_VERIFYHOST] = false;
         }
 
         $ch = curl_init();
@@ -57,6 +60,7 @@ class HttpClient
 
         // Check if any error occurred
         if (curl_errno($ch) || $status != 200) {
+            $reqInfo->curlError = curl_error($ch);
             curl_close($ch);
             throw new \RuntimeException(
                 "Failed issuing request:\n"
