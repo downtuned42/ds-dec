@@ -16,5 +16,6 @@ define('DS_API_PASSWD', '');
 // add regex-patterns to scrape the filename of a download-link out of the download-page's content
 // [<hosterId> => [<hosterDisplayName>, <regExPattern>]]
 $filenameScraper = array(
-    'uploaded' => array('uploaded.to', "|<a .*id=\"filename\".*>(.*)</a>|")
+    'uploaded' => array('uploaded.to', "|<a .*id=\"filename\".*>(.*)</a>|"),
+    'shareonline' => array('Share-Online', '|var fn=\"([A-Za-z0-9\.\-\+]*)\";|')
 );

@@ -25,7 +25,7 @@
                     <div class="text-right">
                         <select id="hoster" name="hoster" class="form-control">
                             <?php foreach ($this->hosterList as $hosterId => $info): ?>
-                                <option value="<?php echo $hosterId?>"><?php echo $info[0]?></option>
+                                <option value="<?php echo $hosterId?>" <?php if ($hosterId == $this->hosterSelected): ?>SELECTED<?php endif; ?>><?php echo $info[0]?></option>
                             <?php endforeach; ?>
                         </select>
                         <input type="submit" name="filenameLookup" value="Lookup filenames" class="btn btn-success" >

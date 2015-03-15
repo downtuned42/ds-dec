@@ -75,7 +75,8 @@ if (empty($_REQUEST['action'])) {
     $tpl = new Pmte('links.phtml');
     $subst = array(
         'hosterList' => $GLOBALS['filenameScraper'],
-        'links' => implode("\n", $linkList)
+        'links' => implode("\n", $linkList),
+        'hosterSelected' => $_REQUEST['hoster']
     );
     echo $tpl->render($subst);
 } else if ($_REQUEST['action'] == 'addLinks') {
